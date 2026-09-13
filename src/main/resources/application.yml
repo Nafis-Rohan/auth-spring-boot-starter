@@ -1,0 +1,8 @@
+server:
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        max-age: 1800
+        http-only: true # js in browser cant read the cookie
+        secure: false #This means the browser is allowed to send the cookie over HTTP as well as HTTPS.
