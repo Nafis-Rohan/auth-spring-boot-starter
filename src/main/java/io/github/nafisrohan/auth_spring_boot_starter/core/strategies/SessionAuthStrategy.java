@@ -13,9 +13,10 @@ public class SessionAuthStrategy implements AuthStrategy {
     @Override
     public void login(HttpServletRequest request, HttpServletResponse response, String username, String password) {
         HttpSession session = request.getSession(true);
-        session.setAttribute("username", username); //Store the username inside this user's session
-//        Session ABC123
-//        username → "nafis"
+        session.setAttribute("username", username);//Store the username inside this user's session
+        request.changeSessionId(); // prevents session fixation — issues a fresh session ID after login
+        //        Session ABC123
+        //        username → "nafis"
     }
 
     //getSession(flase) -> Give me the HTTP session associated with this request.If there isn't a session, dont create one.

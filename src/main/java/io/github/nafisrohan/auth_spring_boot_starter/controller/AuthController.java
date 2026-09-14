@@ -33,4 +33,9 @@ public class AuthController {
         sessionAuthStrategy.logout(request, response);
         return "Logged out";
     }
+
+    @GetMapping("/csrf-token")
+    public String getCsrfToken() {
+        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
+    }
 }
