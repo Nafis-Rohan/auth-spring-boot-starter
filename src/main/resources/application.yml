@@ -10,6 +10,6 @@ server:
 
 jwt:
   secret: this-is-a-temporary-dev-secret-change-it-later-make-it-long
-  algorithm: RS256    # or RS256 , HS256
+  algorithm:  HS256    # or RS256 , HS256
   access-token-expiry:  900000
   refresh-token-expiry: 604800000

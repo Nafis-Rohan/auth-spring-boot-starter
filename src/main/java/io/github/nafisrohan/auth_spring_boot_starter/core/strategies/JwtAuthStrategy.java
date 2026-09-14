@@ -39,14 +39,19 @@ public class JwtAuthStrategy implements AuthStrategy {
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            jwtService.blacklistToken(token);
+            String accessToken = authHeader.substring(7);
+            jwtService.blacklistToken(accessToken);
+        }
+
+        String refreshToken = request.getHeader("X-Refresh-Token");
+        if (refreshToken != null) {
+            jwtService.blacklistToken(refreshToken);
         }
     }
 
 
     public boolean isRefreshTokenValid(String refreshToken) {
-        return jwtService.isTokenValid(refreshToken);
+        return jwtService.isTokenValid(refreshToken) && jwtService.isRefreshToken(refreshToken);
     }
 
     public String getUsernameFromRefreshToken(String refreshToken) {

@@ -22,9 +22,10 @@ public class RsaSigningStrategy implements JwtSigningStrategy {
     }
 
     @Override
-    public String sign(String username, long expiryMillis) {
+    public String sign(String username, long expiryMillis, String tokenType) {
         return Jwts.builder()
                 .subject(username)
+                .claim("type", tokenType)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiryMillis))
                 .signWith(keyPair.getPrivate())
@@ -51,5 +52,11 @@ public class RsaSigningStrategy implements JwtSigningStrategy {
     public long extractExpiry(String token) {
         return Jwts.parser().verifyWith(keyPair.getPublic()).build()
                 .parseSignedClaims(token).getPayload().getExpiration().getTime();
+    }
+
+    @Override
+    public String extractTokenType(String token) {
+        return Jwts.parser().verifyWith(keyPair.getPublic()).build()
+                .parseSignedClaims(token).getPayload().get("type", String.class);
     }
 }

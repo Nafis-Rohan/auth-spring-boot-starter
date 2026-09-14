@@ -32,17 +32,20 @@ public class JwtService {
     private void init() {
         if ("RS256".equalsIgnoreCase(algorithm)) {
             this.signingStrategy = new RsaSigningStrategy();
-        } else {
+        } else if ("HS256".equalsIgnoreCase(algorithm)) {
             this.signingStrategy = new HmacSigningStrategy(secret);
+        } else {
+            throw new IllegalStateException(
+                    "Invalid jwt.algorithm value: '" + algorithm + "'. Supported values are HS256 and RS256.");
         }
     }
 
     public String generateAccessToken(String username) {
-        return signingStrategy.sign(username, accessTokenExpiry);
+        return signingStrategy.sign(username, accessTokenExpiry, "access");
     }
 
     public String generateRefreshToken(String username) {
-        return signingStrategy.sign(username, refreshTokenExpiry);
+        return signingStrategy.sign(username, refreshTokenExpiry, "refresh");
     }
 
     public String extractUsername(String token) {
@@ -57,8 +60,13 @@ public class JwtService {
     }
 
     public void blacklistToken(String token) {
-        long tokenExpiry = signingStrategy.extractExpiry(token);
-        blocklist.put(token, tokenExpiry);
+        try {
+            long tokenExpiry = signingStrategy.extractExpiry(token);
+            blocklist.put(token, tokenExpiry);
+        } catch (Exception e) {
+            // Token is already malformed/expired — nothing meaningful to revoke,
+            // treat logout as already complete rather than failing the request
+        }
     }
 
     public boolean isBlacklisted(String token) {
@@ -71,6 +79,10 @@ public class JwtService {
             return false;
         }
         return true;
+    }
+
+    public boolean isRefreshToken(String token) {
+        return "refresh".equals(signingStrategy.extractTokenType(token));
     }
 
 
