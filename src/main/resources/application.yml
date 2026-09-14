@@ -6,3 +6,10 @@ server:
         max-age: 1800
         http-only: true # js in browser cant read the cookie
         secure: false #This means the browser is allowed to send the cookie over HTTP as well as HTTPS.
+
+
+jwt:
+  secret: this-is-a-temporary-dev-secret-change-it-later-make-it-long
+  algorithm:  HS256    # or RS256 , HS256
+  access-token-expiry:  900000
+  refresh-token-expiry: 604800000
