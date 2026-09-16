@@ -33,9 +33,11 @@ public class SecurityConfig {
                         .ignoringRequestMatchers("/auth/jwt/**") // JWT uses Authorization header, not cookies — CSRF doesn't apply
                 )
                 .authorizeHttpRequests(auth -> auth
-//                       .requestMatchers("/auth/**").permitAll()
-                       .requestMatchers("/auth/**", "/jwt/**").permitAll()
-                       .anyRequest().authenticated()
+                        .requestMatchers("/auth/**", "/jwt/**", "/oauth2/**", "/login/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .defaultSuccessUrl("/auth/oauth2/success", true)
                 )
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
