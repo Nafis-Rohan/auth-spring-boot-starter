@@ -2,13 +2,18 @@ package io.github.nafisrohan.auth_spring_boot_starter.controller;
 
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
+import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OidcAuthStrategy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -16,12 +21,16 @@ public class AuthController {
 
     private final SessionAuthStrategy sessionAuthStrategy;
     private final JwtAuthStrategy jwtAuthStrategy;
+    private final OidcAuthStrategy  oidcAuthStrategy;
+
 
     public AuthController(SessionAuthStrategy sessionAuthStrategy,
-                          JwtAuthStrategy jwtAuthStrategy) {
+                          JwtAuthStrategy jwtAuthStrategy,
+                          OidcAuthStrategy  oidcAuthStrategy) {
 
         this.sessionAuthStrategy = sessionAuthStrategy;
         this.jwtAuthStrategy = jwtAuthStrategy;
+        this.oidcAuthStrategy = oidcAuthStrategy;
     }
 
 
@@ -99,5 +108,23 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
         }
         return ResponseEntity.ok(principal.getAttributes());
+    }
+
+
+    /**============================= OIDC =========================================**/
+    @GetMapping("/oidc/identity")
+    public ResponseEntity<?> oidcIdentity() {
+        OidcUser user = oidcAuthStrategy.getCurrentOidcUser();
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated via OIDC");
+        }
+
+        Map<String, Object> identity = new HashMap<>();
+        identity.put("subject", user.getSubject());
+        identity.put("email", user.getEmail());
+        identity.put("name", user.getFullName());
+        identity.put("picture", user.getPicture());
+
+        return ResponseEntity.ok(identity);
     }
 }
