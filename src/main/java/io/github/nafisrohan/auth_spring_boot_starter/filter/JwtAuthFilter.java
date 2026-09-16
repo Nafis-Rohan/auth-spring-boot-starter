@@ -24,15 +24,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        // Don't overwrite an authentication already set by another strategy
+        // (e.g. OAuth2 login) earlier in the filter chain
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+            String authHeader = request.getHeader("Authorization");
 
-            if (jwtService.isTokenValid(token)) {
-                String username = jwtService.extractUsername(token);
-                var auth = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(auth);
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+
+                if (jwtService.isTokenValid(token)) {
+                    String username = jwtService.extractUsername(token);
+                    var auth = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
             }
         }
 
