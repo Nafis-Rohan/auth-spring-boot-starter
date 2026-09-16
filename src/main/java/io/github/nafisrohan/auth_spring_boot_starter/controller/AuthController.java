@@ -4,6 +4,10 @@ import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStra
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -82,5 +86,18 @@ public class AuthController {
     public String jwtLogout(HttpServletRequest request, HttpServletResponse response) {
         jwtAuthStrategy.logout(request, response);
         return "Logged out (JWT)";
+    }
+
+
+
+    /**============================= OAuth 2=========================================**/
+    //@AuthenticationPrincipal = Give me the currently logged-in user's information
+    // principal storing authenticated OAuth2 user
+    @GetMapping("/oauth2/success")
+    public ResponseEntity<?> oauth2Success(@AuthenticationPrincipal OAuth2User principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+        }
+        return ResponseEntity.ok(principal.getAttributes());
     }
 }

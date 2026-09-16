@@ -24,7 +24,10 @@ public class SessionAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        if (sessionAuthStrategy.isAuthenticated(request)) {
+        // Don't overwrite an authentication already set by another strategy
+        // (e.g. OAuth2 login) earlier in the filter chain
+        if (SecurityContextHolder.getContext().getAuthentication() == null
+                && sessionAuthStrategy.isAuthenticated(request)) {
             String username = (String) request.getSession(false).getAttribute("username");
             var auth = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);

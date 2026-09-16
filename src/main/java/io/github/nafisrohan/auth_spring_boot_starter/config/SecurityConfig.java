@@ -12,6 +12,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
+
+
 @Configuration
 public class SecurityConfig {
 
@@ -24,23 +30,42 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
-//
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())///This tells Spring how to look for/use the CSRF token from incoming requests.
                         .ignoringRequestMatchers("/auth/jwt/**") // JWT uses Authorization header, not cookies — CSRF doesn't apply
                 )
                 .authorizeHttpRequests(auth -> auth
-//                       .requestMatchers("/auth/**").permitAll()
-                       .requestMatchers("/auth/**", "/jwt/**").permitAll()
-                       .anyRequest().authenticated()
+                        .requestMatchers("/auth/**", "/jwt/**", "/oauth2/**", "/login/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .defaultSuccessUrl("/auth/oauth2/success", true)
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
+                        )
                 )
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public OAuth2AuthorizationRequestResolver authorizationRequestResolver(
+            ClientRegistrationRepository clientRegistrationRepository) {
+
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        clientRegistrationRepository, "/oauth2/authorization");
+
+        resolver.setAuthorizationRequestCustomizer(
+                OAuth2AuthorizationRequestCustomizers.withPkce());
+
+        return resolver;
     }
 }
