@@ -6,6 +6,11 @@ import io.github.nafisrohan.auth_spring_boot_starter.filter.SessionAuthFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.jwt.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -48,6 +53,12 @@ public class SecurityConfig {
                                 .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
                         )
                 )
+                //webAuthn Enables/configures WebAuthn in Spring Security.
+                .webAuthn(webAuthn -> webAuthn
+                        .rpId("localhost") //Which website is allowed to use this passkey? So the passkey is associated with localhost.
+                        .allowedOrigins("http://localhost:8080") //WebAuthn will accept authentication requests originating from http://localhost:8080.
+                )
+                .formLogin(Customizer.withDefaults())
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthFilter(jwtService),
@@ -67,5 +78,17 @@ public class SecurityConfig {
                 OAuth2AuthorizationRequestCustomizers.withPkce());
 
         return resolver;
+    }
+
+
+    //webAuth
+    @Bean //Create this object and manage it in the Spring container
+    public UserDetailsService userDetailsService() {
+        UserDetails user = User.withDefaultPasswordEncoder() //Creates a builder for creating a Spring Security user.
+                .username("nafis")
+                .password("password")
+                .roles("USER")
+                .build();
+        return new InMemoryUserDetailsManager(user);
     }
 }
