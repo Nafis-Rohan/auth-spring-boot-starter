@@ -116,8 +116,10 @@ public class AuthController {
 
     @PostMapping("/oauth2/logout")
     public String oauth2Logout(HttpServletRequest request, HttpServletResponse response) {
-        oAuth2AuthStrategy.logout(request, response);
-        return "Logged out (OAuth2) — token revoked at Google";
+        boolean revoked = oAuth2AuthStrategy.revokeAndLogout(request, response);
+        return revoked
+                ? "Logged out (OAuth2) — token revoked at Google"
+                : "Logged out locally (OAuth2) — token revocation at Google failed or was not attempted";
     }
 
 

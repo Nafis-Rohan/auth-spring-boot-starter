@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class OAuth2AuthStrategy implements AuthStrategy {
@@ -38,31 +39,44 @@ public class OAuth2AuthStrategy implements AuthStrategy {
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth instanceof OAuth2AuthenticationToken oauthToken) {
-            OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                    oauthToken.getAuthorizedClientRegistrationId(),
-                    oauthToken.getName()
-            );
-
-            if (client != null) {
-                revokeGoogleToken(client.getAccessToken().getTokenValue());
-            }
-        }
-
-        SecurityContextHolder.clearContext();
-        if (request.getSession(false) != null) {
-            request.getSession(false).invalidate();
-        }
+        revokeAndLogout(request, response);
     }
 
-    private void revokeGoogleToken(String accessToken) {
+    public boolean revokeAndLogout(HttpServletRequest request, HttpServletResponse response) {
+        boolean revoked = false;
         try {
-            String revokeUrl = "https://oauth2.googleapis.com/revoke?token=" + accessToken;
-            restTemplate.postForEntity(revokeUrl, null, String.class);
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth instanceof OAuth2AuthenticationToken oauthToken) {
+                OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
+                        oauthToken.getAuthorizedClientRegistrationId(),
+                        oauthToken.getName()
+                );
+                if (client != null) {
+                    revoked = revokeGoogleToken(client.getAccessToken().getTokenValue());
+                }
+            }
         } catch (Exception e) {
-            // Revocation failing shouldn't block local logout — log and continue
+            // handled below via finally
+        } finally {
+            SecurityContextHolder.clearContext();
+            if (request.getSession(false) != null) {
+                request.getSession(false).invalidate();
+            }
+        }
+        return revoked;
+    }
+
+    private boolean revokeGoogleToken(String accessToken) {
+        try {
+            String revokeUrl = UriComponentsBuilder
+                    .fromUriString("https://oauth2.googleapis.com/revoke")
+                    .queryParam("token", accessToken)
+                    .encode()
+                    .toUriString();
+            restTemplate.postForEntity(revokeUrl, null, String.class);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 }
