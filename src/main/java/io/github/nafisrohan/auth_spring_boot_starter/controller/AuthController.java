@@ -3,6 +3,7 @@ package io.github.nafisrohan.auth_spring_boot_starter.controller;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OidcAuthStrategy;
+import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OAuth2AuthStrategy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -22,15 +23,18 @@ public class AuthController {
     private final SessionAuthStrategy sessionAuthStrategy;
     private final JwtAuthStrategy jwtAuthStrategy;
     private final OidcAuthStrategy  oidcAuthStrategy;
+    private final OAuth2AuthStrategy  oAuth2AuthStrategy;
 
 
     public AuthController(SessionAuthStrategy sessionAuthStrategy,
                           JwtAuthStrategy jwtAuthStrategy,
-                          OidcAuthStrategy  oidcAuthStrategy) {
+                          OidcAuthStrategy  oidcAuthStrategy,
+                          OAuth2AuthStrategy  oAuth2AuthStrategy) {
 
         this.sessionAuthStrategy = sessionAuthStrategy;
         this.jwtAuthStrategy = jwtAuthStrategy;
         this.oidcAuthStrategy = oidcAuthStrategy;
+        this.oAuth2AuthStrategy = oAuth2AuthStrategy;
     }
 
 
@@ -110,6 +114,14 @@ public class AuthController {
         return ResponseEntity.ok(principal.getAttributes());
     }
 
+    @PostMapping("/oauth2/logout")
+    public String oauth2Logout(HttpServletRequest request, HttpServletResponse response) {
+        boolean revoked = oAuth2AuthStrategy.revokeAndLogout(request, response);
+        return revoked
+                ? "Logged out (OAuth2) — token revoked at Google"
+                : "Logged out locally (OAuth2) — token revocation at Google failed or was not attempted";
+    }
+
 
     /**============================= OIDC =========================================**/
     @GetMapping("/oidc/identity")
@@ -127,4 +139,6 @@ public class AuthController {
 
         return ResponseEntity.ok(identity);
     }
+
+
 }
