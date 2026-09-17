@@ -4,8 +4,14 @@ import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuth
 import io.github.nafisrohan.auth_spring_boot_starter.filter.JwtAuthFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.filter.SessionAuthFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.jwt.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -21,6 +27,14 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 @Configuration
 public class SecurityConfig {
 
+
+    @Value("${webauthn.rp-id}")
+    private String webAuthnRpId;
+
+    @Value("${webauthn.allowed-origins}")
+    private String webAuthnAllowedOrigin;
+
+
     private final SessionAuthStrategy sessionAuthStrategy;
     private final JwtService jwtService;
 
@@ -31,7 +45,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+                                                   ClientRegistrationRepository clientRegistrationRepository,
+                                                   @Value("${myauth.test-user.enabled:false}") boolean testUserEnabled) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
@@ -48,12 +63,26 @@ public class SecurityConfig {
                                 .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
                         )
                 )
+                //webAuthn Enables/configures WebAuthn in Spring Security.
+                .webAuthn(webAuthn -> webAuthn
+                        .rpId(webAuthnRpId) //Which website is allowed to use this passkey? So the passkey is associated with localhost.
+                        .allowedOrigins(webAuthnAllowedOrigin) //WebAuthn will accept authentication requests originating from http://localhost:8080.
+                )
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class);
+
+        // formLogin only enabled when explicitly opted into via config —
+        // never active by default, so a real consumer's app isn't silently
+        // redirected to an HTML login page instead of getting a proper 401
+        if (testUserEnabled) {
+            http.formLogin(Customizer.withDefaults());
+        }
+
         return http.build();
     }
+
 
     @Bean
     public OAuth2AuthorizationRequestResolver authorizationRequestResolver(
@@ -68,4 +97,7 @@ public class SecurityConfig {
 
         return resolver;
     }
+
+
+
 }
