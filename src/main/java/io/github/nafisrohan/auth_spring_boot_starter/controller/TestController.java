@@ -1,5 +1,7 @@
 package io.github.nafisrohan.auth_spring_boot_starter.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,11 +23,12 @@ public class TestController {
     }
 
     @GetMapping("/my-resource/{username}")
-    public String myResource(@PathVariable String username, Authentication authentication) {
+    public ResponseEntity<String> myResource(@PathVariable String username, Authentication authentication) {
         if (!authentication.getName().equals(username)) {
-            return "403 - You can only access your own resource";
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("You can only access your own resource");
         }
-        return "Here is " + username + "'s private resource";
+        return ResponseEntity.ok("Here is " + username + "'s private resource");
     }
 }
 
