@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -27,10 +28,22 @@ public class JwtAuthStrategy implements AuthStrategy {
     public void login(HttpServletRequest request, HttpServletResponse response, String username, String password) {
         // Real credential check — same pattern as SessionAuthStrategy,
         // closes the "same gap as SessionAuthStrategy" TODO that was here.
-        UserDetails storedUser = userDetailsService.loadUserByUsername(username);
+        UserDetails storedUser;
+        try {
+            storedUser = userDetailsService.loadUserByUsername(username);
+        } catch (UsernameNotFoundException e) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
         if (!passwordEncoder.matches(password, storedUser.getPassword())) {
             throw new BadCredentialsException("Invalid username or password");
         }
+
+        if (!storedUser.isEnabled() || !storedUser.isAccountNonLocked()
+                || !storedUser.isAccountNonExpired() || !storedUser.isCredentialsNonExpired()) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
 
         String accessToken = jwtService.generateAccessToken(username);
         String refreshToken = jwtService.generateRefreshToken(username);

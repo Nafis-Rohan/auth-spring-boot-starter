@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -27,8 +28,19 @@ public class SessionAuthStrategy implements AuthStrategy {
         // Look up the stored user and check the submitted password against
         // their real hashed password — this is the actual credential check
         // that was missing since Day 1.
-        UserDetails storedUser = userDetailsService.loadUserByUsername(username);
+        UserDetails storedUser;
+        try {
+            storedUser = userDetailsService.loadUserByUsername(username);
+        } catch (UsernameNotFoundException e) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
         if (!passwordEncoder.matches(password, storedUser.getPassword())) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
+
+        if (!storedUser.isEnabled() || !storedUser.isAccountNonLocked()
+                || !storedUser.isAccountNonExpired() || !storedUser.isCredentialsNonExpired()) {
             throw new BadCredentialsException("Invalid username or password");
         }
 
