@@ -42,6 +42,9 @@ public class SecurityConfig {
     @Value("${rate-limit.requests-per-minute:5}")
     private int rateLimitRequestsPerMinute;
 
+    @Value("${rate-limit.window-seconds:60}")
+    private int rateLimitWindowSeconds;
+
 
     private final SessionAuthStrategy sessionAuthStrategy;
     private final JwtService jwtService;
@@ -82,6 +85,8 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtAuthFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofMinutes(1)),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofSeconds(rateLimitWindowSeconds)),
                         UsernamePasswordAuthenticationFilter.class);
 
         // formLogin only enabled when explicitly opted into via config —
