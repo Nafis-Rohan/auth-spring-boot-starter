@@ -4,6 +4,7 @@ import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStra
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OidcAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OAuth2AuthStrategy;
+import io.github.nafisrohan.auth_spring_boot_starter.mfa.TotpService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.security.core.Authentication;
+
+import org.springframework.security.web.csrf.CsrfToken;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,17 +29,21 @@ public class AuthController {
     private final JwtAuthStrategy jwtAuthStrategy;
     private final OidcAuthStrategy  oidcAuthStrategy;
     private final OAuth2AuthStrategy  oAuth2AuthStrategy;
+    private final TotpService totpService;
+
 
 
     public AuthController(SessionAuthStrategy sessionAuthStrategy,
                           JwtAuthStrategy jwtAuthStrategy,
                           OidcAuthStrategy  oidcAuthStrategy,
-                          OAuth2AuthStrategy  oAuth2AuthStrategy) {
+                          OAuth2AuthStrategy  oAuth2AuthStrategy,
+                          TotpService totpService) {
 
         this.sessionAuthStrategy = sessionAuthStrategy;
         this.jwtAuthStrategy = jwtAuthStrategy;
         this.oidcAuthStrategy = oidcAuthStrategy;
         this.oAuth2AuthStrategy = oAuth2AuthStrategy;
+        this.totpService = totpService;
     }
 
 
@@ -59,10 +68,10 @@ public class AuthController {
         return "Logged out";
     }
 
-    @GetMapping("/csrf-token")
-    public String getCsrfToken() {
-        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
-    }
+//    @GetMapping("/csrf-token")
+//    public String getCsrfToken() {
+//        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
+//    }
 
 
 
@@ -138,6 +147,48 @@ public class AuthController {
         identity.put("picture", user.getPicture());
 
         return ResponseEntity.ok(identity);
+    }
+
+    /**============================= MFA / TOTP =========================================**/
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Object> enrollmentLocks =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    @PostMapping("/mfa/enable")
+    public ResponseEntity<String> enableMfa(Authentication authentication) {
+        String username = authentication.getName();
+        Object lock = enrollmentLocks.computeIfAbsent(username, k -> new Object());
+
+        synchronized (lock) {
+            String secret = totpService.generateSecret();
+            String qrCodeUri;
+            try {
+                qrCodeUri = totpService.generateQrCodeImageUri(username, secret);
+            } catch (Exception e) {
+                return ResponseEntity.status(500).body("Failed to generate QR code — MFA not enabled");
+            }
+            totpService.saveSecretForUser(username, secret);
+            return ResponseEntity.ok(qrCodeUri);
+        }
+    }
+
+    @PostMapping("/mfa/verify")
+    public String verifyMfa(Authentication authentication, @RequestParam String code) {
+        String username = authentication.getName();
+        String secret = totpService.getSecretForUser(username);
+        if (secret == null) {
+            return "MFA not enabled for this user";
+        }
+        boolean valid = totpService.verifyCode(secret, code);
+        return valid ? "Code valid — MFA verified" : "Code invalid";
+    }
+
+
+
+    @GetMapping("/csrf-token")
+    public String getCsrfToken(CsrfToken csrfToken) {
+        // Accessing csrfToken.getToken() forces Spring to actually resolve
+        // and write the token — otherwise the cookie may never get set
+        return "CSRF cookie has been set — token: " + csrfToken.getToken();
     }
 
 
