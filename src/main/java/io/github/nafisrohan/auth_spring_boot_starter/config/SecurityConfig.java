@@ -2,6 +2,7 @@ package io.github.nafisrohan.auth_spring_boot_starter.config;
 
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.filter.JwtAuthFilter;
+import io.github.nafisrohan.auth_spring_boot_starter.filter.RateLimitFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.filter.SessionAuthFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +25,8 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 
+import java.time.Duration;
+
 
 @Configuration
 @EnableMethodSecurity //Turn on security checks on individual methods.
@@ -35,6 +38,12 @@ public class SecurityConfig {
 
     @Value("${webauthn.allowed-origins}")
     private String webAuthnAllowedOrigin;
+
+    @Value("${rate-limit.requests-per-minute:5}")
+    private int rateLimitRequestsPerMinute;
+
+    @Value("${rate-limit.window-seconds:60}")
+    private int rateLimitWindowSeconds;
 
 
     private final SessionAuthStrategy sessionAuthStrategy;
@@ -74,6 +83,10 @@ public class SecurityConfig {
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthFilter(jwtService),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofMinutes(1)),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofSeconds(rateLimitWindowSeconds)),
                         UsernamePasswordAuthenticationFilter.class);
 
         // formLogin only enabled when explicitly opted into via config —
