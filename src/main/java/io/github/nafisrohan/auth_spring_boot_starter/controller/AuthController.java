@@ -14,6 +14,10 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.Authentication;
+
+import org.springframework.security.web.csrf.CsrfToken;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +30,7 @@ public class AuthController {
     private final OidcAuthStrategy  oidcAuthStrategy;
     private final OAuth2AuthStrategy  oAuth2AuthStrategy;
     private final TotpService totpService;
+
 
 
     public AuthController(SessionAuthStrategy sessionAuthStrategy,
@@ -63,10 +68,10 @@ public class AuthController {
         return "Logged out";
     }
 
-    @GetMapping("/csrf-token")
-    public String getCsrfToken() {
-        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
-    }
+//    @GetMapping("/csrf-token")
+//    public String getCsrfToken() {
+//        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
+//    }
 
 
 
@@ -144,23 +149,46 @@ public class AuthController {
         return ResponseEntity.ok(identity);
     }
 
-    /**============================= webAuth =========================================**/
+    /**============================= MFA / TOTP =========================================**/
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Object> enrollmentLocks =
+            new java.util.concurrent.ConcurrentHashMap<>();
     @PostMapping("/mfa/enable")
-    public String enableMfa(@RequestParam String username) {
-        String secret = totpService.generateSecret();
-        totpService.saveSecretForUser(username, secret);
-        String qrCodeUri = totpService.generateQrCodeImageUri(username, secret);
-        return qrCodeUri;
+    public ResponseEntity<String> enableMfa(Authentication authentication) {
+        String username = authentication.getName();
+        Object lock = enrollmentLocks.computeIfAbsent(username, k -> new Object());
+
+        synchronized (lock) {
+            String secret = totpService.generateSecret();
+            String qrCodeUri;
+            try {
+                qrCodeUri = totpService.generateQrCodeImageUri(username, secret);
+            } catch (Exception e) {
+                return ResponseEntity.status(500).body("Failed to generate QR code — MFA not enabled");
+            }
+            totpService.saveSecretForUser(username, secret);
+            return ResponseEntity.ok(qrCodeUri);
+        }
     }
 
     @PostMapping("/mfa/verify")
-    public String verifyMfa(@RequestParam String username, @RequestParam String code) {
+    public String verifyMfa(Authentication authentication, @RequestParam String code) {
+        String username = authentication.getName();
         String secret = totpService.getSecretForUser(username);
         if (secret == null) {
             return "MFA not enabled for this user";
         }
         boolean valid = totpService.verifyCode(secret, code);
         return valid ? "Code valid — MFA verified" : "Code invalid";
+    }
+
+
+
+    @GetMapping("/csrf-token")
+    public String getCsrfToken(CsrfToken csrfToken) {
+        // Accessing csrfToken.getToken() forces Spring to actually resolve
+        // and write the token — otherwise the cookie may never get set
+        return "CSRF cookie has been set — token: " + csrfToken.getToken();
     }
 
 
