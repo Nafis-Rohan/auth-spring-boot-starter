@@ -86,6 +86,19 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-webauthn</artifactId>
 		</dependency>
+
+<!--	2FA , TOTP-->
+		<dependency>
+			<groupId>dev.samstevens.totp</groupId>
+			<artifactId>totp-spring-boot-starter</artifactId>
+			<version>1.7.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.beust</groupId>
+					<artifactId>jcommander</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -4,6 +4,7 @@ import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStra
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OidcAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OAuth2AuthStrategy;
+import io.github.nafisrohan.auth_spring_boot_starter.mfa.TotpService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -24,17 +25,20 @@ public class AuthController {
     private final JwtAuthStrategy jwtAuthStrategy;
     private final OidcAuthStrategy  oidcAuthStrategy;
     private final OAuth2AuthStrategy  oAuth2AuthStrategy;
+    private final TotpService totpService;
 
 
     public AuthController(SessionAuthStrategy sessionAuthStrategy,
                           JwtAuthStrategy jwtAuthStrategy,
                           OidcAuthStrategy  oidcAuthStrategy,
-                          OAuth2AuthStrategy  oAuth2AuthStrategy) {
+                          OAuth2AuthStrategy  oAuth2AuthStrategy,
+                          TotpService totpService) {
 
         this.sessionAuthStrategy = sessionAuthStrategy;
         this.jwtAuthStrategy = jwtAuthStrategy;
         this.oidcAuthStrategy = oidcAuthStrategy;
         this.oAuth2AuthStrategy = oAuth2AuthStrategy;
+        this.totpService = totpService;
     }
 
 
@@ -138,6 +142,25 @@ public class AuthController {
         identity.put("picture", user.getPicture());
 
         return ResponseEntity.ok(identity);
+    }
+
+    /**============================= webAuth =========================================**/
+    @PostMapping("/mfa/enable")
+    public String enableMfa(@RequestParam String username) {
+        String secret = totpService.generateSecret();
+        totpService.saveSecretForUser(username, secret);
+        String qrCodeUri = totpService.generateQrCodeImageUri(username, secret);
+        return qrCodeUri;
+    }
+
+    @PostMapping("/mfa/verify")
+    public String verifyMfa(@RequestParam String username, @RequestParam String code) {
+        String secret = totpService.getSecretForUser(username);
+        if (secret == null) {
+            return "MFA not enabled for this user";
+        }
+        boolean valid = totpService.verifyCode(secret, code);
+        return valid ? "Code valid — MFA verified" : "Code invalid";
     }
 
 
