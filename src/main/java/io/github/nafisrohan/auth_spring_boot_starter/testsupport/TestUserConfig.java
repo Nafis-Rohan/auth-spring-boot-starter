@@ -18,6 +18,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 @ConditionalOnProperty(name = "myauth.test-user.enabled", havingValue = "true")
 public class TestUserConfig {
 
+
     @Bean
     public UserDetailsService userDetailsService() {
         UserDetails user = User.withDefaultPasswordEncoder()
@@ -25,6 +26,13 @@ public class TestUserConfig {
                 .password("password")
                 .roles("USER")
                 .build();
-        return new InMemoryUserDetailsManager(user);
+
+        UserDetails admin = User.withDefaultPasswordEncoder()
+                .username("admin")
+                .password("adminpass")
+                .roles("ADMIN")
+                .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
     }
 }
