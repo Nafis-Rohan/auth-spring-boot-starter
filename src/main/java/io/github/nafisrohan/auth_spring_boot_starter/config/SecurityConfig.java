@@ -25,6 +25,8 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+
 
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
@@ -39,10 +41,10 @@ import java.time.Duration;
 public class SecurityConfig {
 
 
-    @Value("${webauthn.rp-id}")
+    @Value("${webauthn.rp-id:localhost}")
     private String webAuthnRpId;
 
-    @Value("${webauthn.allowed-origins}")
+    @Value("${webauthn.allowed-origins:http://localhost:8080}")
     private String webAuthnAllowedOrigin;
 
     @Value("${rate-limit.requests-per-minute:5}")
@@ -64,6 +66,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   @org.springframework.beans.factory.annotation.Autowired(required = false)
                                                    ClientRegistrationRepository clientRegistrationRepository,
                                                    @Value("${unifyauth.test-user.enabled:false}") boolean testUserEnabled) throws Exception {
         http
@@ -92,12 +95,6 @@ public class SecurityConfig {
                             response.getWriter().write("Access denied");
                         })
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        .defaultSuccessUrl("/auth/oauth2/success", true)
-                        .authorizationEndpoint(endpoint -> endpoint
-                                .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
-                        )
-                )
                 //webAuthn Enables/configures WebAuthn in Spring Security.
                 .webAuthn(webAuthn -> webAuthn
                         .rpId(webAuthnRpId) //Which website is allowed to use this passkey? So the passkey is associated with localhost.
@@ -105,12 +102,23 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofMinutes(1)),
-                        UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofSeconds(rateLimitWindowSeconds)),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtAuthFilter(jwtService, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class);
+
+        // OAuth2 login only configured if a ClientRegistrationRepository bean
+        // actually exists — a consumer who hasn't set up OAuth2 (no client-id/
+        // secret in their own application.yml) shouldn't be forced to have it,
+        // same reasoning as making formLogin opt-in below
+        if (clientRegistrationRepository != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .defaultSuccessUrl("/auth/oauth2/success", true)
+                    .authorizationEndpoint(endpoint -> endpoint
+                            .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
+                    )
+            );
+        }
 
         // formLogin only enabled when explicitly opted into via config —
         // never active by default, so a real consumer's app isn't silently
@@ -123,7 +131,10 @@ public class SecurityConfig {
     }
 
 
+
+
     @Bean
+    @ConditionalOnBean(ClientRegistrationRepository.class)
     public OAuth2AuthorizationRequestResolver authorizationRequestResolver(
             ClientRegistrationRepository clientRegistrationRepository) {
 

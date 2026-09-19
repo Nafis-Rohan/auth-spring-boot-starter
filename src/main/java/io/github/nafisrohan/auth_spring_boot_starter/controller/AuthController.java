@@ -181,12 +181,16 @@ public class AuthController {
 
 
 
-//    @GetMapping("/csrf-token")
-//    public String getCsrfToken(CsrfToken csrfToken) {
-//        // Accessing csrfToken.getToken() forces Spring to actually resolve
-//        // and write the token — otherwise the cookie may never get set
-//        return "CSRF cookie has been set — token: " + csrfToken.getToken();
-//    }
+    @GetMapping("/csrf-token")
+    public String getCsrfToken(HttpServletRequest request) {
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        if (csrfToken != null) {
+            csrfToken.getToken(); // forces Spring to resolve and write the cookie
+        }
+        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
+    }
+
+
 
 
 

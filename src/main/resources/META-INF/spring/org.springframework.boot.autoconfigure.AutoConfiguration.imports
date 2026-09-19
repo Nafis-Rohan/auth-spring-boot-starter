@@ -1,1 +1,4 @@
 io.github.nafisrohan.auth_spring_boot_starter.config.AuthAutoConfiguration
+io.github.nafisrohan.auth_spring_boot_starter.config.SecurityConfig
+io.github.nafisrohan.auth_spring_boot_starter.config.PasswordConfig
+io.github.nafisrohan.auth_spring_boot_starter.testsupport.TestUserConfig

@@ -16,7 +16,7 @@ import dev.samstevens.totp.time.TimeProvider;
 
 import java.util.Base64;
 
-@Service
+
 public class TotpService {
 
     private final SecretGenerator secretGenerator = new DefaultSecretGenerator();

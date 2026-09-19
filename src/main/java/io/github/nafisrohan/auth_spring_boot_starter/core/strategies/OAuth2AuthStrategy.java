@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-@Component
+
 public class OAuth2AuthStrategy implements AuthStrategy {
 
     private final OAuth2AuthorizedClientService authorizedClientService;
