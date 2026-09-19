@@ -74,11 +74,12 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())///This tells Spring how to look for/use the CSRF token from incoming requests.
                         .ignoringRequestMatchers(request -> {
-                            // Exempt any request carrying a Bearer token from CSRF, regardless
-                            // of URL — JWT uses the Authorization header, not cookies, so it
-                            // isn't vulnerable to CSRF at all.
                             String authHeader = request.getHeader("Authorization");
-                            return authHeader != null && authHeader.startsWith("Bearer ");
+                            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                                return false;
+                            }
+                            String token = authHeader.substring(7);
+                            return jwtService.isTokenValid(token);
                         })
                 )
                 .authorizeHttpRequests(auth -> auth

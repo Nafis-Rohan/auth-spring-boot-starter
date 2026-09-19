@@ -65,6 +65,9 @@ public class JwtAuthStrategy implements AuthStrategy {
         if (refreshToken == null) {
             throw new IllegalArgumentException("X-Refresh-Token header is required for logout");
         }
+        if (!isRefreshTokenValid(refreshToken)) {
+            throw new IllegalArgumentException("X-Refresh-Token must be a valid refresh token");
+        }
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
