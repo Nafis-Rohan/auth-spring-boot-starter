@@ -28,10 +28,15 @@ webauthn:
   rp-id: localhost
   allowed-origins: http://localhost:8080
 
-myauth:
+unifyauth:
+  strategy:   jwt   # session jwt
   test-user:
     enabled: true
 
 rate-limit:
   requests-per-minute: 5
   window-seconds: 60
+
+logging:
+  level:
+    org.springframework.security: DEBUG

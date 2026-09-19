@@ -25,6 +25,12 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 
+
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+
 import java.time.Duration;
 
 
@@ -48,16 +54,18 @@ public class SecurityConfig {
 
     private final SessionAuthStrategy sessionAuthStrategy;
     private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
-    public SecurityConfig(SessionAuthStrategy sessionAuthStrategy, JwtService jwtService) {
+    public SecurityConfig(SessionAuthStrategy sessionAuthStrategy, JwtService jwtService ,UserDetailsService userDetailsService) {
         this.sessionAuthStrategy = sessionAuthStrategy;
         this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    ClientRegistrationRepository clientRegistrationRepository,
-                                                   @Value("${myauth.test-user.enabled:false}") boolean testUserEnabled) throws Exception {
+                                                   @Value("${unifyauth.test-user.enabled:false}") boolean testUserEnabled) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
@@ -68,6 +76,21 @@ public class SecurityConfig {
                         .requestMatchers("/auth/mfa/**").authenticated()
                         .requestMatchers("/auth/**", "/jwt/**", "/oauth2/**", "/login/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .defaultAuthenticationEntryPointFor(
+                                (request, response, authException) -> {
+                                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                                    response.setContentType("text/plain");
+                                    response.getWriter().write("Unauthorized — please log in");
+                                },
+                                PathPatternRequestMatcher.withDefaults().matcher("/auth/**")
+                        )
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpStatus.FORBIDDEN.value());
+                            response.setContentType("text/plain");
+                            response.getWriter().write("Access denied");
+                        })
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .defaultSuccessUrl("/auth/oauth2/success", true)
@@ -82,11 +105,11 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(new SessionAuthFilter(sessionAuthStrategy),
                         UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new JwtAuthFilter(jwtService),
-                        UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofMinutes(1)),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new RateLimitFilter(rateLimitRequestsPerMinute, Duration.ofSeconds(rateLimitWindowSeconds)),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthFilter(jwtService, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class);
 
         // formLogin only enabled when explicitly opted into via config —
