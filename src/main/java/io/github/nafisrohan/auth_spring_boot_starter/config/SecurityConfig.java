@@ -6,8 +6,8 @@ import io.github.nafisrohan.auth_spring_boot_starter.filter.RateLimitFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.filter.SessionAuthFilter;
 import io.github.nafisrohan.auth_spring_boot_starter.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -36,7 +36,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import java.time.Duration;
 
 
-@Configuration
+@AutoConfiguration
 @EnableMethodSecurity //Turn on security checks on individual methods.
 public class SecurityConfig {
 
@@ -73,7 +73,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())///This tells Spring how to look for/use the CSRF token from incoming requests.
-                        .ignoringRequestMatchers("/auth/jwt/**") // JWT uses Authorization header, not cookies — CSRF doesn't apply
+                        .ignoringRequestMatchers(request -> {
+                            // Exempt any request carrying a Bearer token from CSRF, regardless
+                            // of URL — JWT uses the Authorization header, not cookies, so it
+                            // isn't vulnerable to CSRF at all.
+                            String authHeader = request.getHeader("Authorization");
+                            return authHeader != null && authHeader.startsWith("Bearer ");
+                        })
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/mfa/**").authenticated()

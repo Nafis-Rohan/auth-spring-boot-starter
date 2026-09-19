@@ -1,5 +1,6 @@
 package io.github.nafisrohan.auth_spring_boot_starter.config;
 
+import io.github.nafisrohan.auth_spring_boot_starter.controller.TestController;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OAuth2AuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OidcAuthStrategy;
@@ -15,6 +16,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import io.github.nafisrohan.auth_spring_boot_starter.controller.AuthController;
+
+import io.github.nafisrohan.auth_spring_boot_starter.exception.GlobalExceptionHandler;
 
 @AutoConfiguration
 @EnableConfigurationProperties(AuthProperties.class)
@@ -63,5 +66,18 @@ public class AuthAutoConfiguration {
                                          AuthProperties authProperties) {
         return new AuthController(sessionAuthStrategy, jwtAuthStrategy, oidcAuthStrategy,
                 oAuth2AuthStrategy, totpService, authProperties);
+    }
+
+
+
+    @Bean
+    public GlobalExceptionHandler globalExceptionHandler() {
+        return new GlobalExceptionHandler();
+    }
+
+
+    @Bean
+    public TestController testController() {
+        return new TestController();
     }
 }
