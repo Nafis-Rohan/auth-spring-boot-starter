@@ -26,8 +26,6 @@ public class JwtAuthStrategy implements AuthStrategy {
 
     @Override
     public void login(HttpServletRequest request, HttpServletResponse response, String username, String password) {
-        // Real credential check — same pattern as SessionAuthStrategy,
-        // closes the "same gap as SessionAuthStrategy" TODO that was here.
         UserDetails storedUser;
         try {
             storedUser = userDetailsService.loadUserByUsername(username);
@@ -43,7 +41,6 @@ public class JwtAuthStrategy implements AuthStrategy {
                 || !storedUser.isAccountNonExpired() || !storedUser.isCredentialsNonExpired()) {
             throw new BadCredentialsException("Invalid username or password");
         }
-
 
         String accessToken = jwtService.generateAccessToken(username);
         String refreshToken = jwtService.generateRefreshToken(username);
@@ -64,16 +61,21 @@ public class JwtAuthStrategy implements AuthStrategy {
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = request.getHeader("X-Refresh-Token");
+        if (refreshToken == null) {
+            throw new IllegalArgumentException("X-Refresh-Token header is required for logout");
+        }
+        if (!isRefreshTokenValid(refreshToken)) {
+            throw new IllegalArgumentException("X-Refresh-Token must be a valid refresh token");
+        }
+
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String accessToken = authHeader.substring(7);
             jwtService.blacklistToken(accessToken);
         }
 
-        String refreshToken = request.getHeader("X-Refresh-Token");
-        if (refreshToken != null) {
-            jwtService.blacklistToken(refreshToken);
-        }
+        jwtService.blacklistToken(refreshToken);
     }
 
 
