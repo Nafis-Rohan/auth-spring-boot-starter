@@ -15,7 +15,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
  * be enabled in a real deployment.
  */
 @Configuration
-@ConditionalOnProperty(name = "myauth.test-user.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "unifyauth.test-user.enabled", havingValue = "true")
 public class TestUserConfig {
 
 

@@ -1,5 +1,6 @@
 package io.github.nafisrohan.auth_spring_boot_starter.controller;
 
+import io.github.nafisrohan.auth_spring_boot_starter.config.AuthProperties;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.JwtAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.SessionAuthStrategy;
 import io.github.nafisrohan.auth_spring_boot_starter.core.strategies.OidcAuthStrategy;
@@ -30,31 +31,33 @@ public class AuthController {
     private final OidcAuthStrategy  oidcAuthStrategy;
     private final OAuth2AuthStrategy  oAuth2AuthStrategy;
     private final TotpService totpService;
+    private final AuthProperties authProperties;
 
 
 
     public AuthController(SessionAuthStrategy sessionAuthStrategy,
                           JwtAuthStrategy jwtAuthStrategy,
-                          OidcAuthStrategy  oidcAuthStrategy,
-                          OAuth2AuthStrategy  oAuth2AuthStrategy,
-                          TotpService totpService) {
-
+                          OidcAuthStrategy oidcAuthStrategy,
+                          OAuth2AuthStrategy oAuth2AuthStrategy,
+                          TotpService totpService,
+                          AuthProperties authProperties) {
         this.sessionAuthStrategy = sessionAuthStrategy;
         this.jwtAuthStrategy = jwtAuthStrategy;
         this.oidcAuthStrategy = oidcAuthStrategy;
         this.oAuth2AuthStrategy = oAuth2AuthStrategy;
         this.totpService = totpService;
+        this.authProperties = authProperties;
     }
 
 
+    /**============================= Cookie based =========================================**/
 
-
-    @PostMapping("/login")
-    public String login(@RequestParam String username, @RequestParam String password,
-                        HttpServletRequest request, HttpServletResponse response) {
-        sessionAuthStrategy.login(request, response, username, password);
-        return "Logged in as " + username;
-    }
+//    @PostMapping("/login")
+//    public String login(@RequestParam String username, @RequestParam String password,
+//                        HttpServletRequest request, HttpServletResponse response) {
+//        sessionAuthStrategy.login(request, response, username, password);
+//        return "Logged in as " + username;
+//    }
 
     @GetMapping("/check")
     public String check(HttpServletRequest request) {
@@ -68,20 +71,14 @@ public class AuthController {
         return "Logged out";
     }
 
-//    @GetMapping("/csrf-token")
-//    public String getCsrfToken() {
-//        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
-//    }
-
-
 
     /**============================= jwt based =========================================**/
-    @PostMapping("/jwt/login")
-    public String jwtLogin(@RequestParam String username, @RequestParam String password,
-                           HttpServletRequest request, HttpServletResponse response) {
-        jwtAuthStrategy.login(request, response, username, password);
-        return "Logged in as " + username + " — check the Authorization header for your token";
-    }
+//    @PostMapping("/jwt/login")
+//    public String jwtLogin(@RequestParam String username, @RequestParam String password,
+//                           HttpServletRequest request, HttpServletResponse response) {
+//        jwtAuthStrategy.login(request, response, username, password);
+//        return "Logged in as " + username + " — check the Authorization header for your token";
+//    }
 
     @GetMapping("/jwt/check")
     public String jwtCheck(HttpServletRequest request) {
@@ -124,11 +121,15 @@ public class AuthController {
     }
 
     @PostMapping("/oauth2/logout")
-    public String oauth2Logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<String> oauth2Logout(HttpServletRequest request, HttpServletResponse response) {
+        if (oAuth2AuthStrategy == null) {
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                    .body("OAuth2 is not configured for this application");
+        }
         boolean revoked = oAuth2AuthStrategy.revokeAndLogout(request, response);
-        return revoked
+        return ResponseEntity.ok(revoked
                 ? "Logged out (OAuth2) — token revoked at Google"
-                : "Logged out locally (OAuth2) — token revocation at Google failed or was not attempted";
+                : "Logged out locally (OAuth2) — token revocation at Google failed or was not attempted");
     }
 
 
@@ -185,10 +186,41 @@ public class AuthController {
 
 
     @GetMapping("/csrf-token")
-    public String getCsrfToken(CsrfToken csrfToken) {
-        // Accessing csrfToken.getToken() forces Spring to actually resolve
-        // and write the token — otherwise the cookie may never get set
-        return "CSRF cookie has been set — token: " + csrfToken.getToken();
+    public String getCsrfToken(HttpServletRequest request) {
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        if (csrfToken != null) {
+            csrfToken.getToken(); // forces Spring to resolve and write the cookie
+        }
+        return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
+    }
+
+
+
+
+
+
+
+
+    // Cookie and jwt
+    @PostMapping("/unified-login")
+    public ResponseEntity<String> unifiedLogin(@RequestParam String username, @RequestParam String password,
+                                               HttpServletRequest request, HttpServletResponse response) {
+        String strategy = authProperties.getStrategy();
+
+        switch (strategy) {
+            case "session" -> {
+                sessionAuthStrategy.login(request, response, username, password);
+                return ResponseEntity.ok("Logged in as " + username + " (session)");
+            }
+            case "jwt" -> {
+                jwtAuthStrategy.login(request, response, username, password);
+                return ResponseEntity.ok("Logged in as " + username + " (JWT — check Authorization header)");
+            }
+            default -> {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Unsupported or misconfigured strategy: " + strategy);
+            }
+        }
     }
 
 

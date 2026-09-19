@@ -60,7 +60,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
 //      System.out.println("DEBUG - RateLimitFilter saw path: [" + path + "]");
         boolean isLoginEndpoint = path.equals("/login")
                 || path.equals("/auth/login")
-                || path.equals("/auth/jwt/login");
+                || path.equals("/auth/jwt/login")
+                || path.equals("/auth/unified-login")
+                || path.equals("/auth/mfa/verify");
 
         if (!isLoginEndpoint) {
             chain.doFilter(request, response);
