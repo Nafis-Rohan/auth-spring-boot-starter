@@ -87,7 +87,7 @@ public class SecurityConfig {
                                     response.setContentType("text/plain");
                                     response.getWriter().write("Unauthorized — please log in");
                                 },
-                                PathPatternRequestMatcher.withDefaults().matcher("/auth/**")
+                                PathPatternRequestMatcher.withDefaults().matcher("/**")
                         )
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpStatus.FORBIDDEN.value());

@@ -9,6 +9,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -36,10 +37,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 if (jwtService.isTokenValid(token)) {
                     String username = jwtService.extractUsername(token);
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    var auth = new UsernamePasswordAuthenticationToken(
-                            username, null, userDetails.getAuthorities());
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    try {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                        var auth = new UsernamePasswordAuthenticationToken(username, null, userDetails.getAuthorities());
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    } catch (UsernameNotFoundException e) {
+                        // Token is valid but the user no longer exists — leave
+                        // SecurityContext unauthenticated instead of throwing, so the
+                        // request proceeds as anonymous and gets a normal 401/403
+                    }
                 }
             }
         }

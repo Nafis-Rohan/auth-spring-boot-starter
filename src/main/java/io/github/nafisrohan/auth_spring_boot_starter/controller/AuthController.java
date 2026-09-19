@@ -121,11 +121,15 @@ public class AuthController {
     }
 
     @PostMapping("/oauth2/logout")
-    public String oauth2Logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<String> oauth2Logout(HttpServletRequest request, HttpServletResponse response) {
+        if (oAuth2AuthStrategy == null) {
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                    .body("OAuth2 is not configured for this application");
+        }
         boolean revoked = oAuth2AuthStrategy.revokeAndLogout(request, response);
-        return revoked
+        return ResponseEntity.ok(revoked
                 ? "Logged out (OAuth2) — token revoked at Google"
-                : "Logged out locally (OAuth2) — token revocation at Google failed or was not attempted";
+                : "Logged out locally (OAuth2) — token revocation at Google failed or was not attempted");
     }
 
 

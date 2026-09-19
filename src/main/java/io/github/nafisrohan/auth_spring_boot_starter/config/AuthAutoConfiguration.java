@@ -21,11 +21,6 @@ import io.github.nafisrohan.auth_spring_boot_starter.controller.AuthController;
 public class AuthAutoConfiguration {
 
     @Bean
-    public AuthProperties authProperties() {
-        return new AuthProperties();
-    }
-
-    @Bean
     public SessionAuthStrategy sessionAuthStrategy(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
         return new SessionAuthStrategy(userDetailsService, passwordEncoder);
     }
