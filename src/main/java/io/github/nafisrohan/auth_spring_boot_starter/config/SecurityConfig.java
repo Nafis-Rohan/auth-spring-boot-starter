@@ -71,7 +71,7 @@ public class SecurityConfig {
                                                    @org.springframework.beans.factory.annotation.Autowired(required = false)
                                                    ClientRegistrationRepository clientRegistrationRepository,
                                                    @Value("${unifyauth.test-user.enabled:false}") boolean testUserEnabled,
-                                                   @Value("${unifyauth.form-login.enabled:true}") boolean formLoginEnabled) throws Exception {
+                                                   @Value("${unifyauth.form-login.enabled:false}") boolean formLoginEnabled) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
