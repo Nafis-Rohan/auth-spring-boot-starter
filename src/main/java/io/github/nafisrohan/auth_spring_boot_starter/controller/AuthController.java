@@ -50,6 +50,31 @@ public class AuthController {
     }
 
 
+    /**============================= JWT and Cookie based =========================================**/
+    @PostMapping("/unified-login")
+    public ResponseEntity<String> unifiedLogin(@RequestParam String username, @RequestParam String password,
+                                               HttpServletRequest request, HttpServletResponse response) {
+        String strategy = authProperties.getStrategy();
+
+        switch (strategy) {
+            case "session" -> {
+                sessionAuthStrategy.login(request, response, username, password);
+                return ResponseEntity.ok("Logged in as " + username + " (session)");
+            }
+            case "jwt" -> {
+                jwtAuthStrategy.login(request, response, username, password);
+                return ResponseEntity.ok("Logged in as " + username + " (JWT — check Authorization header)");
+            }
+            default -> {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Unsupported or misconfigured strategy: " + strategy);
+            }
+        }
+    }
+
+
+
+
     /**============================= Cookie based =========================================**/
 
 //    @PostMapping("/login")
@@ -173,14 +198,16 @@ public class AuthController {
     }
 
     @PostMapping("/mfa/verify")
-    public String verifyMfa(Authentication authentication, @RequestParam String code) {
+    public ResponseEntity<String> verifyMfa(Authentication authentication, @RequestParam String code) {
         String username = authentication.getName();
         String secret = totpService.getSecretForUser(username);
         if (secret == null) {
-            return "MFA not enabled for this user";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("MFA not enabled for this user");
         }
         boolean valid = totpService.verifyCode(secret, code);
-        return valid ? "Code valid — MFA verified" : "Code invalid";
+        return valid
+                ? ResponseEntity.ok("Code valid — MFA verified")
+                : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Code invalid");
     }
 
 
@@ -194,34 +221,6 @@ public class AuthController {
         return "CSRF cookie has been set — check your cookies for XSRF-TOKEN";
     }
 
-
-
-
-
-
-
-
-    // Cookie and jwt
-    @PostMapping("/unified-login")
-    public ResponseEntity<String> unifiedLogin(@RequestParam String username, @RequestParam String password,
-                                               HttpServletRequest request, HttpServletResponse response) {
-        String strategy = authProperties.getStrategy();
-
-        switch (strategy) {
-            case "session" -> {
-                sessionAuthStrategy.login(request, response, username, password);
-                return ResponseEntity.ok("Logged in as " + username + " (session)");
-            }
-            case "jwt" -> {
-                jwtAuthStrategy.login(request, response, username, password);
-                return ResponseEntity.ok("Logged in as " + username + " (JWT — check Authorization header)");
-            }
-            default -> {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Unsupported or misconfigured strategy: " + strategy);
-            }
-        }
-    }
 
 
 }
