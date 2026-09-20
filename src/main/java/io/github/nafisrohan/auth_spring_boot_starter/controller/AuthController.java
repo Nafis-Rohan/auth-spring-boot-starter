@@ -173,14 +173,16 @@ public class AuthController {
     }
 
     @PostMapping("/mfa/verify")
-    public String verifyMfa(Authentication authentication, @RequestParam String code) {
+    public ResponseEntity<String> verifyMfa(Authentication authentication, @RequestParam String code) {
         String username = authentication.getName();
         String secret = totpService.getSecretForUser(username);
         if (secret == null) {
-            return "MFA not enabled for this user";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("MFA not enabled for this user");
         }
         boolean valid = totpService.verifyCode(secret, code);
-        return valid ? "Code valid — MFA verified" : "Code invalid";
+        return valid
+                ? ResponseEntity.ok("Code valid — MFA verified")
+                : ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Code invalid");
     }
 
 

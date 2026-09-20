@@ -54,6 +54,8 @@ public class SecurityConfig {
     private int rateLimitWindowSeconds;
 
 
+
+
     private final SessionAuthStrategy sessionAuthStrategy;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -68,7 +70,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    @org.springframework.beans.factory.annotation.Autowired(required = false)
                                                    ClientRegistrationRepository clientRegistrationRepository,
-                                                   @Value("${unifyauth.test-user.enabled:false}") boolean testUserEnabled) throws Exception {
+                                                   @Value("${unifyauth.test-user.enabled:false}") boolean testUserEnabled,
+                                                   @Value("${unifyauth.form-login.enabled:true}") boolean formLoginEnabled) throws Exception {
         http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())//Store the CSRF token in a cookie
@@ -130,7 +133,7 @@ public class SecurityConfig {
         // formLogin only enabled when explicitly opted into via config —
         // never active by default, so a real consumer's app isn't silently
         // redirected to an HTML login page instead of getting a proper 401
-        if (testUserEnabled) {
+        if (formLoginEnabled) {
             http.formLogin(Customizer.withDefaults());
         }
 
