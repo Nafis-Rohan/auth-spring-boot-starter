@@ -30,17 +30,6 @@ login method:
 - **Rate limiting** — stops someone from guessing passwords thousands
   of times a minute
 
-## How I actually built this
-
-Ten days, one thing at a time — session cookies first, then JWT, then
-OAuth2, OIDC, WebAuthn, MFA, RBAC, rate limiting, then a full day
-wiring everything together behind config, then a final day of testing
-and cleanup. Every day's code went through a real pull request, and
-every PR was reviewed by an automated code review bot (Sourcery) before
-merging — it caught real bugs almost every single day: security holes,
-crashes on edge cases, wrong HTTP status codes, memory leaks. Every bug
-found and every fix is written down in `DEBUG.md`.
-
 ## How I actually tested this
 
 Building the code and clicking through it in my own project isn't
