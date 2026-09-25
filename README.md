@@ -1,5 +1,7 @@
 # auth-spring-boot-starter
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.nafis-rohan/auth-spring-boot-starter.svg)](https://central.sonatype.com/artifact/io.github.nafis-rohan/auth-spring-boot-starter)
+
 A plug-in Spring Boot library that adds ready-made authentication and
 security features to any Spring Boot app — just add it as a dependency
 and turn features on with a few lines in `application.yml`. No copying
@@ -38,7 +40,7 @@ So the real test was: build the actual `.jar` file, create a completely
 separate, brand-new Spring Boot project that's never seen this code
 before, add the jar as a normal dependency, and see if it works from
 the outside. It didn't, at first — that one test uncovered seven real
-bugs that had been invisible the whole time (see `DEBUG.md` for all of
+bugs that had been invisible the whole time (see [`DEBUG.md`](./DEBUG.md) for all of
 them). After fixing those, I went further: built a real PostgreSQL
 database with a real user table in that separate project, swapped it in
 for the library's fake test user, and confirmed every login method
@@ -52,17 +54,14 @@ reusable library, not just working code.
 
 ```xml
 <dependency>
-    <groupId>io.github.nafisrohan</groupId>
+    <groupId>io.github.nafis-rohan</groupId>
     <artifactId>auth-spring-boot-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 
-**Maven Central publishing is in progress** (namespace verification
-pending) — once live, this block resolves directly, no extra setup.
-Until then, install locally first with `mvn clean install -DskipTests`
-in this repo, then the same coordinates resolve from your machine's
-local Maven cache.
+**Published on Maven Central** — this resolves directly, no extra setup
+needed.
 
 **Step 2 — tell it which login method to use.**
 
