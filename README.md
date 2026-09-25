@@ -40,9 +40,8 @@ So the real test was: build the actual `.jar` file, create a completely
 separate, brand-new Spring Boot project that's never seen this code
 before, add the jar as a normal dependency, and see if it works from
 the outside. It didn't, at first — that one test uncovered seven real
-bugs that had been invisible the whole time (see
-bugs that had been invisible the whole time (see `DEBUG.md` for all of
-[`DEBUG.md`](./DEBUG.md) for all of them). After fixing those, I went further: built a real PostgreSQL
+bugs that had been invisible the whole time (see [`DEBUG.md`](./DEBUG.md) for all of
+them). After fixing those, I went further: built a real PostgreSQL
 database with a real user table in that separate project, swapped it in
 for the library's fake test user, and confirmed every login method
 still worked correctly against real, independent data — no changes
